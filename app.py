@@ -28,7 +28,7 @@ class Registration(db.Model):
 # --------------------
 with app.app_context():
     inspector = inspect(db.engine)
-    if not inspector.has_table("registration"):
+    if not inspector.has_table("registrations"):
         db.create_all()
 
 # --------------------
