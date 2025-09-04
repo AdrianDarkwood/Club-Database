@@ -8,13 +8,34 @@
 <body>
 <div class="container mt-5">
     <h2>Club Registrations Admin</h2>
-    <table class="table table-striped mt-4">
+
+    <!-- Search / Filter Form -->
+    <form method="GET" action="/" class="row g-3 mb-4">
+        <div class="col-auto">
+            <input type="text" name="search" class="form-control" placeholder="Search by member name or USN" value="{{ request.args.get('search', '') }}">
+        </div>
+        <div class="col-auto">
+            <select name="branch" class="form-select">
+                <option value="">All Branches</option>
+                {% for b in branches %}
+                    <option value="{{ b }}" {% if request.args.get('branch') == b %}selected{% endif %}>{{ b }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
+    <table class="table table-striped table-bordered">
         <thead>
         <tr>
             <th>ID</th>
-            <th>Member 1 Name</th>
-            <th>Member 1 USN</th>
-            <th>Member 1 Phone</th>
+            {% for i in range(1,7) %}
+            <th>Member {{ i }} Name</th>
+            <th>Member {{ i }} USN</th>
+            <th>Member {{ i }} Phone</th>
+            {% endfor %}
             <th>Branch</th>
             <th>Submitted At</th>
             <th>Actions</th>
@@ -24,9 +45,11 @@
         {% for entry in entries %}
         <tr>
             <td>{{ entry.id }}</td>
-            <td>{{ entry.member1_name }}</td>
-            <td>{{ entry.member1_usn }}</td>
-            <td>{{ entry.member1_phone }}</td>
+            {% for i in range(1,7) %}
+            <td>{{ getattr(entry, 'member{}_name'.format(i)) }}</td>
+            <td>{{ getattr(entry, 'member{}_usn'.format(i)) }}</td>
+            <td>{{ getattr(entry, 'member{}_phone'.format(i)) }}</td>
+            {% endfor %}
             <td>{{ entry.branch }}</td>
             <td>{{ entry.submitted_at }}</td>
             <td>

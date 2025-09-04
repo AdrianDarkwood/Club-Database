@@ -1,10 +1,10 @@
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from sqlalchemy import inspect
+from sqlalchemy import inspect, or_
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'YOUR_DATABASE_URL'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'DATABASE_URL'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -14,11 +14,13 @@ db = SQLAlchemy(app)
 # --------------------
 class Registration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    member1_name = db.Column(db.String(100), nullable=False)
-    member1_usn = db.Column(db.String(50), nullable=False)
-    member1_phone = db.Column(db.String(20), nullable=False)
     branch = db.Column(db.String(50))
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Members 1-6
+    for i in range(1, 7):
+        vars()[f'member{i}_name'] = db.Column(db.String(100))
+        vars()[f'member{i}_usn'] = db.Column(db.String(50))
+        vars()[f'member{i}_phone'] = db.Column(db.String(20))
 
 # --------------------
 # Create tables if not exists
@@ -31,10 +33,28 @@ with app.app_context():
 # --------------------
 # Routes
 # --------------------
-@app.route('/')
+@app.route('/', methods=['GET'])
 def admin():
-    entries = Registration.query.order_by(Registration.submitted_at.desc()).all()
-    return render_template('admin.html', entries=entries)
+    search = request.args.get('search', '')
+    branch_filter = request.args.get('branch', '')
+
+    query = Registration.query
+    if search:
+        conditions = []
+        for i in range(1,7):
+            conditions.append(getattr(Registration, f'member{i}_name').ilike(f'%{search}%'))
+            conditions.append(getattr(Registration, f'member{i}_usn').ilike(f'%{search}%'))
+        query = query.filter(or_(*conditions))
+
+    if branch_filter:
+        query = query.filter_by(branch=branch_filter)
+
+    entries = query.order_by(Registration.submitted_at.desc()).all()
+
+    # get unique branches
+    branches = [b[0] for b in db.session.query(Registration.branch).distinct().all() if b[0]]
+
+    return render_template('admin.html', entries=entries, branches=branches)
 
 @app.route('/delete/<int:id>', methods=['POST'])
 def delete_entry(id):
